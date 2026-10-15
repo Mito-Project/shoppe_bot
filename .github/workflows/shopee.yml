@@ -1,0 +1,67 @@
+name: Shopee price watch
+
+on:
+  schedule:
+    - cron: "17 * * * *"   # chạy mỗi giờ (phút thứ 17). Repo Private: đổi thành "17 */2 * * *"
+  workflow_dispatch:
+    inputs:
+      report:
+        description: "Gửi giá hiện tại về Telegram (dùng khi chạy thử)"
+        type: boolean
+        default: true
+
+concurrency:
+  group: shopee-watch
+  cancel-in-progress: false
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Cài thư viện
+        run: |
+          pip install -r requirements.txt
+          python -m playwright install --with-deps chromium
+
+      - name: Lấy trạng thái lần chạy trước
+        uses: actions/cache/restore@v4
+        with:
+          path: state.json
+          key: state-${{ github.run_id }}
+          restore-keys: state-
+
+      - name: Kiểm tra giá
+        env:
+          TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          SHOPEE_COOKIES: ${{ secrets.SHOPEE_COOKIES }}
+        run: |
+          ARGS="--headed"
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.report }}" = "true" ]; then
+            ARGS="$ARGS --report"
+          fi
+          xvfb-run -a python shopee_watch.py $ARGS
+
+      - name: Lưu trạng thái
+        if: always() && hashFiles('state.json') != ''
+        uses: actions/cache/save@v4
+        with:
+          path: state.json
+          key: state-${{ github.run_id }}
+
+      - name: Lưu ảnh chụp lỗi (nếu có)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: debug-screenshots
+          path: debug_*.png
+          if-no-files-found: ignore
+          retention-days: 3
