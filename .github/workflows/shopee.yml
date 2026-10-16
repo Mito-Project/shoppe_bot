@@ -1,14 +1,14 @@
 name: Shopee price watch
 
 on:
-  schedule:
-    - cron: "17 * * * *"   # chạy mỗi giờ (phút thứ 17). Repo Private: đổi thành "17 */2 * * *"
-  workflow_dispatch:
-    inputs:
-      report:
-        description: "Gửi giá hiện tại về Telegram (dùng khi chạy thử)"
-        type: boolean
-        default: true
+  # schedule:
+  #   - cron: "17 * * * *"   # chạy mỗi giờ (phút thứ 17). Repo Private: đổi thành "17 */2 * * *"
+  # workflow_dispatch:
+  #   inputs:
+  #     report:
+  #       description: "Gửi giá hiện tại về Telegram (dùng khi chạy thử)"
+  #       type: boolean
+  #       default: true
 
 concurrency:
   group: shopee-watch
